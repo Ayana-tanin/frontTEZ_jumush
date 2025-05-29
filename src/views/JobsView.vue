@@ -57,9 +57,20 @@ async function loadJobs() {
   loading.value = true
   error.value = ''
   try {
-    console.log('Вызываем API для получения вакансий...')
+    console.log('Начинаем загрузку вакансий...')
+    console.log('API URL:', import.meta.env.VITE_API_URL)
+    
+    // Пробуем прямой fetch для отладки
+    console.log('Пробуем прямой fetch запрос...')
+    const directResponse = await fetch(import.meta.env.VITE_API_URL + '/api/jobs')
+    console.log('Статус ответа:', directResponse.status)
+    const directData = await directResponse.json()
+    console.log('Данные от прямого fetch:', directData)
+    
+    // Пробуем через jobsAPI
+    console.log('Пробуем через jobsAPI...')
     const result = await jobsAPI.getJobs()
-    console.log('Получен ответ от API:', result)
+    console.log('Получен ответ от jobsAPI:', result)
     
     if (Array.isArray(result)) {
       jobs.value = result
@@ -90,6 +101,12 @@ async function loadJobs() {
     }
   } catch (e: any) {
     console.error('Ошибка при загрузке вакансий:', e)
+    console.error('Детали ошибки:', {
+      message: e.message,
+      status: e.response?.status,
+      data: e.response?.data,
+      url: e.config?.url
+    })
     error.value = `Ошибка при загрузке вакансий: ${e.message || 'Неизвестная ошибка'}`
     // Используем демо-данные при ошибке
     jobs.value = [
