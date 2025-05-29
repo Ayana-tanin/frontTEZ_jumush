@@ -8,12 +8,9 @@ COPY . .
 RUN npm run build
 
 # Production stage
-FROM node:18-alpine AS production
+FROM nginx:alpine
 
-# Install nginx
-RUN apk add --no-cache nginx
-
-WORKDIR /app
+# Copy the built files from build stage
 COPY --from=build /app/dist /usr/share/nginx/html
 COPY default.conf /etc/nginx/conf.d/default.conf
 
