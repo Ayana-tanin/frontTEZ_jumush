@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+  <!-- Person silhouettes -->
+  <circle cx="70" cy="40" r="20" fill="#0056a9"/>
+  <path d="M50 60 L50 100 L90 100 L90 60 Z" fill="#0056a9"/>
+  
+  <circle cx="130" cy="40" r="20" fill="#0056a9"/>
+  <path d="M110 60 L110 100 L150 100 L150 60 Z" fill="#0056a9"/>
+  
+  <!-- Handshake -->
+  <path d="M70 75 C85 60, 95 60, 100 70 L100 70 C105 60, 115 60, 130 75 Z" fill="#0056a9"/>
+  <path d="M80 75 L100 95 L120 75" stroke="#0056a9" stroke-width="8" fill="none"/>
+  <circle cx="90" cy="85" r="4" fill="#0056a9"/>
+  <circle cx="110" cy="85" r="4" fill="#0056a9"/>
+  
+  <!-- Text -->
+  <text x="100" y="140" font-family="Arial" font-size="30" font-weight="bold" text-anchor="middle" fill="#0056a9">TEZ</text>
+  <text x="100" y="175" font-family="Arial" font-size="30" font-weight="bold" text-anchor="middle" fill="#0056a9">JUMUSH</text>
+</svg> 

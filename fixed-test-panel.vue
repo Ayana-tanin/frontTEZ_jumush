@@ -1,0 +1,12 @@
+<!-- Временная панель для тестирования (удалить в продакшн) -->
+<div class="test-panel">
+  <div class="test-buttons">
+    <button class="test-btn" @click="isLoggedIn = true; userType = 'employer'">
+      Режим работодателя
+    </button>
+    <button class="test-btn" @click="isLoggedIn = true; userType = 'worker'">
+      Режим работника
+    </button>
+    <span class="test-status">Текущий режим: {{ isLoggedIn ? userType : 'Не авторизован' }}</span>
+  </div>
+</div> 
