@@ -1,19 +1,31 @@
-import { createRouter, createWebHistory, RouteRecordRaw } from 'vue-router'
+import { createRouter, createWebHistory } from 'vue-router'
+import type { RouteRecordRaw, RouteComponent } from 'vue-router'
 import { i18n } from '@/utils/i18n'
 import type { TranslationLanguages } from '@/utils/i18n'
 
-// Добавляем типы для env
-declare module 'vite' {
-  interface ImportMetaEnv {
-    BASE_URL: string
-    DEV: boolean
-  }
+// Объявляем типы для env
+interface ImportMetaEnv {
+  BASE_URL: string
+  DEV: boolean
 }
 
-const routes: RouteRecordRaw[] = [
+interface ImportMeta {
+  readonly env: ImportMetaEnv
+}
+
+// Определяем базовый тип для компонента
+type AsyncComponent = () => Promise<any>
+
+// Определяем тип для маршрута с безопасной загрузкой
+interface SafeRouteRecord extends Omit<RouteRecordRaw, 'component'> {
+  component?: AsyncComponent | RouteComponent
+  children?: SafeRouteRecord[]
+}
+
+const routes: SafeRouteRecord[] = [
   {
     path: '/:locale(ru|kg)?',
-    component: { template: '<router-view />' },
+    component: { template: '<router-view />' } as RouteComponent,
     children: [
       { path: '', name: 'home', component: () => import('@/views/HomeView.vue') },
       { path: 'jobs', name: 'jobs', component: () => import('@/views/JobsView.vue'), meta: { requiresAuth: true } },
@@ -27,9 +39,32 @@ const routes: RouteRecordRaw[] = [
   }
 ]
 
+// Добавляем обработку ошибок для динамических импортов
+const loadComponent = (component: AsyncComponent): AsyncComponent => {
+  return async () => {
+    try {
+      return await component()
+    } catch (error) {
+      console.error('Failed to load component:', error)
+      throw error
+    }
+  }
+}
+
+// Обновляем маршруты с безопасной загрузкой компонентов
+const safeRoutes: RouteRecordRaw[] = routes.map(route => ({
+  ...route,
+  component: typeof route.component === 'function' ? loadComponent(route.component as AsyncComponent) : route.component,
+  children: route.children?.map(child => ({
+    ...child,
+    component: typeof child.component === 'function' ? loadComponent(child.component as AsyncComponent) : child.component
+  }))
+})) as RouteRecordRaw[]
+
+// Создаем роутер
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
-  routes
+  routes: safeRoutes
 })
 
 // Функция для проверки валидности токена
@@ -171,24 +206,6 @@ router.onError((error) => {
     })
   }
 })
-
-// Добавляем обработку ошибок для динамических импортов
-const loadComponent = (component: () => Promise<any>) => {
-  return async () => {
-    try {
-      return await component()
-    } catch (error) {
-      console.error('Failed to load component:', error)
-      throw error // Пробрасываем ошибку дальше для обработки в router.onError
-    }
-  }
-}
-
-// Обновляем маршруты с безопасной загрузкой компонентов
-routes[0].children = routes[0].children.map(route => ({
-  ...route,
-  component: route.component ? loadComponent(route.component as () => Promise<any>) : undefined
-}))
 
 // Логирование успешной навигации в dev режиме
 if (import.meta.env.DEV) {
