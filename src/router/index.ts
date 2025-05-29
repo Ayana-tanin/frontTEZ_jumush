@@ -1,19 +1,27 @@
-import { createRouter, createWebHistory } from 'vue-router'
-import { i18n } from '../utils/i18n'
-import type { TranslationLanguages } from '../utils/i18n'
+import { createRouter, createWebHistory, RouteRecordRaw } from 'vue-router'
+import { i18n } from '@/utils/i18n'
+import type { TranslationLanguages } from '@/utils/i18n'
 
-const routes = [
+// Добавляем типы для env
+declare module 'vite' {
+  interface ImportMetaEnv {
+    BASE_URL: string
+    DEV: boolean
+  }
+}
+
+const routes: RouteRecordRaw[] = [
   {
     path: '/:locale(ru|kg)?',
     component: { template: '<router-view />' },
     children: [
-      { path: '', name: 'home', component: () => import('../views/HomeView.vue') },
-      { path: 'jobs', name: 'jobs', component: () => import('../views/JobsView.vue'), meta: { requiresAuth: true } },
-      { path: 'jobs/:id', name: 'job-details', component: () => import('../views/JobDetailView.vue'), meta: { requiresAuth: true } },
-      { path: 'about', name: 'about', component: () => import('../views/AboutView.vue') },
-      { path: 'register', name: 'register', component: () => import('../views/RegisterView.vue'), meta: { requiresGuest: true } },
-      { path: 'login', name: 'login', component: () => import('../views/LoginView.vue'), meta: { requiresGuest: true } },
-      { path: 'dashboard', name: 'dashboard', component: () => import('../views/DashboardView.vue'), meta: { requiresAuth: true } },
+      { path: '', name: 'home', component: () => import('@/views/HomeView.vue') },
+      { path: 'jobs', name: 'jobs', component: () => import('@/views/JobsView.vue'), meta: { requiresAuth: true } },
+      { path: 'jobs/:id', name: 'job-details', component: () => import('@/views/JobDetailView.vue'), meta: { requiresAuth: true } },
+      { path: 'about', name: 'about', component: () => import('@/views/AboutView.vue') },
+      { path: 'register', name: 'register', component: () => import('@/views/RegisterView.vue'), meta: { requiresGuest: true } },
+      { path: 'login', name: 'login', component: () => import('@/views/LoginView.vue'), meta: { requiresGuest: true } },
+      { path: 'dashboard', name: 'dashboard', component: () => import('@/views/DashboardView.vue'), meta: { requiresAuth: true } },
       { path: ':pathMatch(.*)*', redirect: '' },
     ]
   }
@@ -134,16 +142,53 @@ router.beforeEach((to, from, next) => {
   next()
 })
 
-// Обработка ошибок навигации
+// Улучшаем обработку ошибок навигации
 router.onError((error) => {
-  console.error('Router error:', error)
+  console.error('Router error details:', {
+    message: error.message,
+    stack: error.stack,
+    name: error.name,
+    cause: error.cause
+  })
   
-  // Если ошибка связана с загрузкой компонента, перенаправляем на главную
+  // Обработка различных типов ошибок
   if (error.message.includes('Loading chunk') || error.message.includes('Failed to fetch')) {
     console.warn('Chunk loading error, redirecting to home')
     router.push('/')
+  } else if (error.message.includes('Cannot find module')) {
+    console.error('Component not found error:', error.message)
+    // Показываем пользователю сообщение об ошибке
+    router.push({
+      path: '/',
+      query: { error: 'component_not_found' }
+    })
+  } else {
+    // Для всех остальных ошибок
+    console.error('Unexpected router error:', error)
+    router.push({
+      path: '/',
+      query: { error: 'navigation_failed' }
+    })
   }
 })
+
+// Добавляем обработку ошибок для динамических импортов
+const loadComponent = (component: () => Promise<any>) => {
+  return async () => {
+    try {
+      return await component()
+    } catch (error) {
+      console.error('Failed to load component:', error)
+      throw error // Пробрасываем ошибку дальше для обработки в router.onError
+    }
+  }
+}
+
+// Обновляем маршруты с безопасной загрузкой компонентов
+routes[0].children = routes[0].children.map(route => ({
+  ...route,
+  component: route.component ? loadComponent(route.component as () => Promise<any>) : undefined
+}))
 
 // Логирование успешной навигации в dev режиме
 if (import.meta.env.DEV) {
